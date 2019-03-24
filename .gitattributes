@@ -2,5 +2,4 @@
 * text=auto
 
 
-* linguist-vendored
-*.py linguist-vendored=false
+static/* linguist-vendored
