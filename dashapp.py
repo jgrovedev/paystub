@@ -1,0 +1,141 @@
+import dash
+import dash_core_components as dcc 
+import dash_html_components as html 
+import plotly.plotly as py
+import plotly.graph_objs as go
+import sqlite3
+import pandas as pd
+
+conn = sqlite3.connect('paychecks.db')
+
+df_ct = pd.read_sql('SELECT * FROM CheckTotal',conn)
+df_earn = pd.read_sql('SELECT * FROM Earnings', conn)
+df_whold = pd.read_sql('SELECT * FROM Withholdings', conn)
+
+df_totalch = df_earn.merge(df_ct, how='right')
+df_totalch = df_totalch[['Date', 'TotalHours', 'CheckTotal']]
+
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
+app.css.append_css({'external_url': 'https://codepen.io/amyoshino/pen/jzXypZ.css'})
+
+app.layout = html.Div(children=[
+    html.H1(children='Paystub', className= 'nine columns'),
+    html.Img(
+                src="https://unitedcoolair.com/wp-content/uploads/UCAlogo_withTagline-white-outline-1.png",
+                className='three columns',
+                style={
+                    'height': '15%',
+                    'width': '15%',
+                    'float': 'right',
+                    'position': 'relative',
+                    'margin-top': 20,
+                    'margin-right': 20,
+                },
+            ),
+    html.Div(children='A web application where paystubs are graphed', className= 'nine columns'),
+
+    # HTML ROW CREATED IN DASH
+    html.Div([
+        # HTML COLUMN CREATED IN DASH
+        html.Div([
+            # PLOTLY BAR GRAPH        
+            dcc.Graph(
+                id='pay',
+                figure={
+                    'data': [
+                        go.Bar(
+                            x = df_totalch['Date'],
+                            y = df_totalch['CheckTotal'],
+                            name = 'Take Home Pay',
+                        ),
+                          go.Bar(
+                            x = df_totalch['Date'],
+                            y = df_earn['EarnTotal'],
+                            name = 'Earnings',
+                        )
+                    ],
+                    'layout': go.Layout(
+                        title = 'Take Home Pay vs. Earnings',
+                        barmode = 'group',
+                        yaxis = dict(title = 'Pay (U.S. Dollars)'),
+                        xaxis = dict(title = 'Date Paid')
+                    )
+                }
+            )
+        ], className  = 'six columns'),
+ 
+        # HTML COLUMN CREATED IN DASH
+        html.Div([
+            # PLOTLY LINE GRAPH
+            dcc.Graph(
+                id='hours',
+                figure={
+                    'data': [
+                        go.Scatter(
+                            x = df_earn['Date'],
+                            y = df_earn['RegHours'],
+                            mode = 'lines',
+                            name = 'Regular Hours',
+                        ),
+                        go.Scatter(
+                            x = df_earn['Date'],
+                            y = df_earn['OtHours'],
+                            mode = 'lines',
+                            name = 'Overtime Hours',
+                        )
+                    ]
+                }
+            )
+        ], className='six columns')
+    ], className='row'),
+
+    # HTML ROW CREATED IN DASH
+    html.Div([
+        # HTML COLUMN CREATED IN DASH
+        html.Div([
+            # PLOTLY PIE CHART
+            dcc.Graph(
+                id='withholdings-pie',
+                figure={
+                    'data': [
+                        go.Pie(
+                            labels = ['A', 'B', 'C', 'D'],
+                            values = [4500,2500,1053,500],
+                        )
+                    ]
+                }
+            )
+        ], className='six columns'),
+        # HTML COLUMN CREATED IN DASH
+        html.Div([
+            # PLOTLY BAR CHART
+            dcc.Graph(
+                id='withholdings-bar',
+                figure={
+                    'data':[
+                        go.Bar(
+                            x = df_whold['FedTax'],
+                            y = df_whold['Date'],
+                            name = 'Federal Tax',
+                            orientation = 'h',
+                        ),
+                         go.Bar(
+                            x = df_whold['Social_Security'],
+                            y = df_whold['Date'],
+                            name = 'Social Security',
+                            orientation = 'h',
+                        ),                        
+                    ]
+                }
+            )
+        ], className='six columns')
+    ], className='row')
+
+], className='ten columns offset-by-one')
+
+
+if __name__ == "__main__":
+    app.run_server(debug=True)
