@@ -5,6 +5,7 @@ import plotly.plotly as py
 import plotly.graph_objs as go
 import sqlite3
 import pandas as pd
+from functools import reduce
 
 conn = sqlite3.connect('paychecks.db')
 
@@ -12,8 +13,9 @@ df_ct = pd.read_sql('SELECT * FROM CheckTotal',conn)
 df_earn = pd.read_sql('SELECT * FROM Earnings', conn)
 df_whold = pd.read_sql('SELECT * FROM Withholdings', conn)
 
-df_totalch = df_earn.merge(df_ct, how='right')
-df_totalch = df_totalch[['Date', 'TotalHours', 'CheckTotal']]
+data_frames = [df_ct, df_earn, df_whold]
+df_paystub = reduce(lambda  left,right: pd.merge(left,right,on=['Date'], 
+                                                how='outer'), data_frames)
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -47,12 +49,12 @@ app.layout = html.Div(children=[
                 figure={
                     'data': [
                         go.Bar(
-                            x = df_totalch['Date'],
-                            y = df_totalch['CheckTotal'],
+                            x = df_paystub['Date'],
+                            y = df_paystub['CheckTotal'],
                             name = 'Take Home Pay',
                         ),
                           go.Bar(
-                            x = df_totalch['Date'],
+                            x = df_paystub['Date'],
                             y = df_earn['EarnTotal'],
                             name = 'Earnings',
                         )
@@ -128,7 +130,26 @@ app.layout = html.Div(children=[
                             name = 'Social Security',
                             orientation = 'h',
                         ),                        
-                    ]
+                    ],
+                    'layout': go.Layout(
+                        xaxis=dict(
+                            showgrid=False,
+                            showline=False,
+                            showticklabels=False,
+                            zeroline=False,
+                            domain=[0.15, 1]
+                        ),
+                        yaxis=dict(
+                            showgrid=False,
+                            showline=False,
+                            # showticklables=False,
+                            zeroline=False,
+                        ),
+                        barmode='stack',
+                        paper_bgcolor='rgb(248, 248, 255)',
+                        plot_bgcolor='rgb(248, 248, 255)',
+                        showlegend=False,                       
+                    )
                 }
             )
         ], className='six columns')
