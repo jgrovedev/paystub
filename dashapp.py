@@ -27,6 +27,8 @@ def date_extraction(df):
 
 date_extraction(df_paystub)
 
+df_monthly = df_paystub.groupby(['Month']).sum().reset_index()
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -58,9 +60,8 @@ app.layout = html.Div(children=[
                         options=[
                             {'label': 'Weekly', 'value': 'Weekly'},
                             {'label': 'Monthly', 'value': 'Monthly'},
-                            {'label': 'YTD', 'value': 'YTD'},
                         ],
-                        value='',
+                        value='Weekly',
                         labelStyle={'display': 'inline-block'}
                     ),
         ], className = 'two columns'),
@@ -94,26 +95,6 @@ app.layout = html.Div(children=[
             # PLOTLY BAR GRAPH        
             dcc.Graph(
                 id='pay',
-                figure={
-                    'data': [
-                        go.Bar(
-                            x = df_paystub['Date'],
-                            y = df_paystub['CheckTotal'],
-                            name = 'Take Home Pay',
-                        ),
-                          go.Bar(
-                            x = df_paystub['Date'],
-                            y = df_earn['EarnTotal'],
-                            name = 'Earnings',
-                        )
-                    ],
-                    'layout': go.Layout(
-                        title = 'Take Home Pay vs. Earnings',
-                        barmode = 'group',
-                        yaxis = dict(title = 'Pay (U.S. Dollars)'),
-                        xaxis = dict(title = 'Date Paid')
-                    )
-                }
             )
         ], className  = 'six columns'),
  
@@ -205,6 +186,53 @@ app.layout = html.Div(children=[
 
 ], className='ten columns offset-by-one')
 
+@app.callback(dash.dependencies.Output('pay', 'figure'),
+              [dash.dependencies.Input('data-view', 'value')])
+
+def monthly_selector(value):
+    if value == 'Monthly':
+        figure={
+            'data': [
+                go.Bar(
+                    x = df_monthly['Month'],
+                    y = df_monthly['CheckTotal'],
+                    name = 'Take Home Pay',
+                ),
+                    go.Bar(
+                    x = df_monthly['Month'],
+                    y = df_monthly['EarnTotal'],
+                    name = 'Earnings',
+                )
+            ],
+            'layout': go.Layout(
+                title = 'Take Home Pay vs. Earnings',
+                barmode = 'group',
+                yaxis = dict(title = 'Pay (U.S. Dollars)'),
+                xaxis = dict(title = 'Date Paid')
+            )
+        }
+    elif value == 'Weekly':
+        figure={
+            'data': [
+                go.Bar(
+                    x = df_paystub['Date'],
+                    y = df_paystub['CheckTotal'],
+                    name = 'Take Home Pay',
+                ),
+                    go.Bar(
+                    x = df_paystub['Date'],
+                    y = df_earn['EarnTotal'],
+                    name = 'Earnings',
+                )
+            ],
+            'layout': go.Layout(
+                title = 'Take Home Pay vs. Earnings',
+                barmode = 'group',
+                yaxis = dict(title = 'Pay (U.S. Dollars)'),
+                xaxis = dict(title = 'Date Paid')
+            )
+        }
+    return figure
 
 if __name__ == "__main__":
     app.run_server(debug=True)
