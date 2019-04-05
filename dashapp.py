@@ -1,6 +1,7 @@
 import dash
 import dash_core_components as dcc 
-import dash_html_components as html 
+import dash_html_components as html
+from dash.dependencies import Input, Output 
 import plotly.plotly as py
 import plotly.graph_objs as go
 import sqlite3
@@ -56,7 +57,7 @@ app.layout = html.Div(children=[
     html.Div([
         html.Div([
             dcc.RadioItems(
-                        id='data-view',
+                        id='dataview',
                         options=[
                             {'label': 'Weekly', 'value': 'Weekly'},
                             {'label': 'Monthly', 'value': 'Monthly'},
@@ -103,22 +104,6 @@ app.layout = html.Div(children=[
             # PLOTLY LINE GRAPH
             dcc.Graph(
                 id='hours',
-                figure={
-                    'data': [
-                        go.Scatter(
-                            x = df_earn['Date'],
-                            y = df_earn['RegHours'],
-                            mode = 'lines',
-                            name = 'Regular Hours',
-                        ),
-                        go.Scatter(
-                            x = df_earn['Date'],
-                            y = df_earn['OtHours'],
-                            mode = 'lines',
-                            name = 'Overtime Hours',
-                        )
-                    ]
-                }
             )
         ], className='six columns')
     ], className='row'),
@@ -186,52 +171,54 @@ app.layout = html.Div(children=[
 
 ], className='ten columns offset-by-one')
 
-@app.callback(dash.dependencies.Output('pay', 'figure'),
-              [dash.dependencies.Input('data-view', 'value')])
+@app.callback(Output('pay', 'figure'),
+             [Input('dataview', 'value')])
+def dataview_pay(value):
+    df = df_paystub if value == 'Weekly' else df_monthly
+    dfkey = 'Date' if value == 'Weekly' else 'Month'
+    figure={
+        'data': [
+            go.Bar(  
+                x = df[dfkey],
+                y = df['CheckTotal'],
+                name = 'Take Home Pay',
+            ),
+                go.Bar(
+                x = df[dfkey],
+                y = df['EarnTotal'],
+                name = 'Earnings',
+            )
+        ],
+        'layout': go.Layout(
+            title = 'Take Home Pay vs. Earnings',
+            barmode = 'group',
+            yaxis = dict(title = 'Pay (U.S. Dollars)'),
+            xaxis = dict(title = 'Date Paid')
+        )
+    }
+    return figure
 
-def monthly_selector(value):
-    if value == 'Monthly':
-        figure={
-            'data': [
-                go.Bar(
-                    x = df_monthly['Month'],
-                    y = df_monthly['CheckTotal'],
-                    name = 'Take Home Pay',
-                ),
-                    go.Bar(
-                    x = df_monthly['Month'],
-                    y = df_monthly['EarnTotal'],
-                    name = 'Earnings',
-                )
-            ],
-            'layout': go.Layout(
-                title = 'Take Home Pay vs. Earnings',
-                barmode = 'group',
-                yaxis = dict(title = 'Pay (U.S. Dollars)'),
-                xaxis = dict(title = 'Date Paid')
+@app.callback(Output('hours', 'figure'),
+             [Input('dataview', 'value')])
+def dataview_hours(value):
+    df = df_paystub if value == 'Weekly' else df_monthly
+    dfkey = 'Date' if value == 'Weekly' else 'Month'
+    figure={
+        'data': [
+            go.Scatter(
+                x = df[dfkey],
+                y = df['RegHours'],
+                mode = 'lines',
+                name = 'Regular Hours',
+            ),
+            go.Scatter(
+                x = df[dfkey],
+                y = df['OtHours'],
+                mode = 'lines',
+                name = 'Overtime Hours',
             )
-        }
-    elif value == 'Weekly':
-        figure={
-            'data': [
-                go.Bar(
-                    x = df_paystub['Date'],
-                    y = df_paystub['CheckTotal'],
-                    name = 'Take Home Pay',
-                ),
-                    go.Bar(
-                    x = df_paystub['Date'],
-                    y = df_earn['EarnTotal'],
-                    name = 'Earnings',
-                )
-            ],
-            'layout': go.Layout(
-                title = 'Take Home Pay vs. Earnings',
-                barmode = 'group',
-                yaxis = dict(title = 'Pay (U.S. Dollars)'),
-                xaxis = dict(title = 'Date Paid')
-            )
-        }
+        ]
+    }
     return figure
 
 if __name__ == "__main__":
