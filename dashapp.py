@@ -19,16 +19,7 @@ data_frames = [df_ct, df_earn, df_whold]
 df_paystub = reduce(lambda  left,right: pd.merge(left,right,on=['Date'], 
                                                 how='outer'), data_frames)
 
-def date_extraction(df):
-    df['Date'] = pd.to_datetime(df['Date'])
-    df['Year'] = df['Date'].dt.strftime('%Y')
-    df['Month'] = df['Date'].dt.strftime('%B')
-    df['Day'] = df['Date'].dt.strftime('%d')
-    return df
-
-date_extraction(df_paystub)
-
-df_monthly = df_paystub.groupby(['Month']).sum().reset_index()
+df_paystub['Date'] = pd.to_datetime(df_paystub['Date'], format='%Y-%m-%d')
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -37,7 +28,7 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.css.append_css({'external_url': 'https://codepen.io/amyoshino/pen/jzXypZ.css'})
 
 app.layout = html.Div(children=[
-    html.H1(children='Paystub', className= 'nine columns'),
+    html.H1(children='paystub', className= 'nine columns'),
     html.Img(
                 src="https://unitedcoolair.com/wp-content/uploads/UCAlogo_withTagline-white-outline-1.png",
                 className='three columns',
@@ -57,36 +48,25 @@ app.layout = html.Div(children=[
     html.Div([
         html.Div([
             dcc.RadioItems(
-                        id='dataview',
+                        id='data-view',
                         options=[
-                            {'label': 'Weekly', 'value': 'Weekly'},
-                            {'label': 'Monthly', 'value': 'Monthly'},
+                            {'label': 'Weekly View', 'value': 'Weekly'},
+                            {'label': 'Monthly View', 'value': 'Monthly'},
                         ],
                         value='Weekly',
                         labelStyle={'display': 'inline-block'}
                     ),
         ], className = 'two columns'),
             
-        html.Div([    
-            dcc.Dropdown(
-                id='year-dropdown',
-                options=[
-                        {'label': i, 'value': i} for i in df_paystub['Year'].unique()
-                ],
-                placeholder="Select a year",
-            ),
-        ], className='five columns'),
-            
-        html.Div([    
-            dcc.Dropdown(
-                id='month-dropdown',
-                options=[
-                  {'label': i, 'value': i} for i in df_paystub['Month'].unique()
-                ],
-                placeholder="Select a month(s)",
-                multi=True,
-            ),
-        ], className='five columns'),
+        html.Div([
+            dcc.DatePickerRange(
+                    id='date-picker-range',
+                    start_date_placeholder_text="Start Date",
+                    end_date_placeholder_text="End Date",
+                    start_date=df_paystub['Date'].iloc[0],
+                    end_date=df_paystub['Date'].iloc[-1],
+                )   
+        ], className = 'ten columns'),
     ], className  = 'row'),
     
     # HTML ROW CREATED IN DASH
@@ -171,20 +151,27 @@ app.layout = html.Div(children=[
 
 ], className='ten columns offset-by-one')
 
-@app.callback(Output('pay', 'figure'),
-             [Input('dataview', 'value')])
-def dataview_pay(value):
-    df = df_paystub if value == 'Weekly' else df_monthly
-    dfkey = 'Date' if value == 'Weekly' else 'Month'
+# HOURS GRAPH CALLBACK
+@app.callback(
+    dash.dependencies.Output('pay', 'figure'),
+    [dash.dependencies.Input('date-picker-range', 'start_date'),
+    dash.dependencies.Input('date-picker-range', 'end_date'),
+    dash.dependencies.Input('data-view', 'value')]
+)
+def figupdate(start_date, end_date, value):
+    df = df_paystub
+    df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
+    df_monthly = df.groupby(pd.Grouper(key='Date', freq='M')).sum().reset_index()
+    df = df if value == 'Weekly' else df_monthly
     figure={
         'data': [
             go.Bar(  
-                x = df[dfkey],
+                x = df['Date'],
                 y = df['CheckTotal'],
                 name = 'Take Home Pay',
             ),
                 go.Bar(
-                x = df[dfkey],
+                x = df['Date'],
                 y = df['EarnTotal'],
                 name = 'Earnings',
             )
@@ -193,26 +180,34 @@ def dataview_pay(value):
             title = 'Take Home Pay vs. Earnings',
             barmode = 'group',
             yaxis = dict(title = 'Pay (U.S. Dollars)'),
-            xaxis = dict(title = 'Date Paid')
+            xaxis =  dict(title = 'Date Paid',
+                          tickformat = '%d %B (%a)<br>%Y',                      
+
+            )
         )
     }
     return figure
 
 @app.callback(Output('hours', 'figure'),
-             [Input('dataview', 'value')])
-def dataview_hours(value):
-    df = df_paystub if value == 'Weekly' else df_monthly
-    dfkey = 'Date' if value == 'Weekly' else 'Month'
+    [dash.dependencies.Input('date-picker-range', 'start_date'),
+    dash.dependencies.Input('date-picker-range', 'end_date'),
+    dash.dependencies.Input('data-view', 'value')]
+)
+def dataview_hours(start_date, end_date, value):
+    df = df_paystub
+    df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
+    df_monthly = df.groupby(pd.Grouper(key='Date', freq='M')).sum().reset_index()
+    df = df if value == 'Weekly' else df_monthly
     figure={
         'data': [
             go.Scatter(
-                x = df[dfkey],
+                x = df['Date'],
                 y = df['RegHours'],
                 mode = 'lines',
                 name = 'Regular Hours',
             ),
             go.Scatter(
-                x = df[dfkey],
+                x = df['Date'],
                 y = df['OtHours'],
                 mode = 'lines',
                 name = 'Overtime Hours',
