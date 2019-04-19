@@ -20,3 +20,5 @@ Users can interactivly change date range and view types to visually display data
 
 ## How to use?
 Run paycheck_database.py and enter information from paystub. Next, run dashapp.py to view interactive data.
+
+Note: Users will need to change table names in paycheck_database.py and dataframe names in dashapp.py to match their specific paystub withholdings/earnings.
