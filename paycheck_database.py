@@ -18,7 +18,7 @@ def data_entry():
         
         print('***EARNINGS***\n')
         date = input('Date of paycheck: ')
-        reghours = float(input('Hours worked: '))
+        reghours = float(input('Regular Hours worked: '))
         othours = float(input('Overtime hours: '))
         totalhours = reghours + othours
         earntotal = (reghours * regpay) + (othours * otpay)
