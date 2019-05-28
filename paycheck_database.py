@@ -13,8 +13,8 @@ def create_table():
 # PROMPTS USER FOR INPUT TO UPDATE THE DATABASE
 def data_entry():
     with conn:
-        regpay = 15.00
-        otpay = 22.50
+        regpay = 16.00
+        otpay = 24.00
         
         print('***EARNINGS***\n')
         date = input('Date of paycheck: ')
