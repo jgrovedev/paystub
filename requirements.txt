@@ -3,3 +3,4 @@ dash-core-components == 0.44.0
 dash-html-components == 0.14.0
 plotly == 3.7.1
 pandas == 0.24.2
+gunicorn == 19.9.0
