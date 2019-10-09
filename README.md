@@ -1,6 +1,8 @@
 ## paystub
 An interactive paystub vizulization web application that keeps track of earnings, withholdings, and hours. 
 
+#### [Interactive Demo](https://pay-stub.herokuapp.com/)
+
 ## Motivation
 Created to keep track of earned summer wages.
  
